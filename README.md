@@ -20,8 +20,8 @@ The tool parses email headers and body, identifies sender infrastructure and URL
 
 ## Usage
 python3 MailScope.py -f mail.eml [options]
--h            show help
--f <file>     path to .eml file
--vt           enable VirusTotal (sender IP and domain scan)
--abuse        enable AbuseIPDB (sender IP scan)
--url          enable urlscan.io (domain and URL scans)
+- -h            show help
+- -f <file>     path to .eml file
+- -vt           enable VirusTotal (sender IP and domain scan)
+- -abuse        enable AbuseIPDB (sender IP scan)
+- -url          enable urlscan.io (domain and URL scans)
