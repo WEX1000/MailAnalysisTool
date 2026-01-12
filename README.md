@@ -1,5 +1,10 @@
+# MailScope
 
-# MailAnalysisTool
+MailScope is a **basic SOC-oriented email analysis tool** for inspecting `.eml` files.
 
-Basic Python tool for .eml email analysis focused on SOC triage.
-It parses email headers and body, extracts sender IP, sender domain and URLs, and enriches them with reputation data from VirusTotal, urlscan.io, and AbuseIPDB. API keys are loaded from an external file. Designed for quick phishing analysis and IOC enrichment.
+It parses email headers and body, extracts key indicators of compromise (IOCs), and enriches them with reputation data from external threat-intelligence services.
+
+## Features
+- Parses `.eml` files (RFC-compliant)
+- Extracts sender email, sender domain and SMTP hop IPs
+- Collects URLs from email content (deduplicated)
