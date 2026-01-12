@@ -6,5 +6,5 @@ It parses email headers and body, extracts key indicators of compromise (IOCs), 
 
 ## Features
 - Parses `.eml` files (RFC-compliant)
-- Extracts sender email, sender domain and SMTP hop IPs
+- Extracts sender email, sender domain and IP
 - Collects URLs from email content (deduplicated)
