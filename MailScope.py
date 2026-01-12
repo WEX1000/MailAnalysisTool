@@ -194,7 +194,7 @@ def mail_analysis(path: str):
     body = msg.get_body(preferencelist=("html", "plain"))
     urls = dedupe(URL_REGEX.findall(body.get_content())) if body else []
 
-    # ---------- RESULTS ----------
+    # ---------- BASIC RESULTS ----------
     print("Basic info:")
     print(f"Date: {date}")
     print(f"Sender domain: {sender_domain}")
@@ -210,6 +210,7 @@ def mail_analysis(path: str):
     if VT_ON == 0 and ABUSEIPDB_ON == 0 and URLSCAN_ON == 0:
         print("-" * 78)
 
+    # ---------- VT RESULTS ----------
     if VT_ON == 1:
         print("-" * 34 + "VirusTotal" + "-" * 34)
         print(f"Sender IP reputation: {(vt_ip(sender_ip) if sender_ip else None)['score']} (no. of vendors flagging IP as malicious)")
@@ -217,6 +218,7 @@ def mail_analysis(path: str):
         if ABUSEIPDB_ON == 0 and URLSCAN_ON == 0:
             print("-" * 78)
     
+    # ---------- ABUSEIPDB RESULTS ----------
     if ABUSEIPDB_ON == 1:
         print("-" * 34 + "AbuseIPDB" + "-" * 35)
         print(f"Confidence of abuse: {(abuseipdb_ip(sender_ip) if sender_ip else None).get('confidence')}")
@@ -226,6 +228,7 @@ def mail_analysis(path: str):
         if URLSCAN_ON == 0:
             print("-" * 78)
 
+    # ---------- URLSCAN RESULTS ----------
     if URLSCAN_ON == 1:
         print("-" * 34 + "URLScan" + "-" * 37)
         print(f"Sender domain scan: {(urlscan_domain(sender_domain) if sender_domain else None)['result']}")
