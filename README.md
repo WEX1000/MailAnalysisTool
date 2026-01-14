@@ -13,7 +13,7 @@ The tool parses email headers and body, identifies sender infrastructure and URL
   - message metadata (Date, Message-ID, User-Agent)
   - URLs from email body (deduplicated)
 - Optional enrichment:
-  - **VirusTotal** – sender IP and domain reputation
+  - **VirusTotal** – sender IP, domain and attachements hash reputation
   - **AbuseIPDB** – sender IP abuse confidence
   - **urlscan.io** – sandbox scans for sender domain and URLs
 
