@@ -16,7 +16,6 @@ The tool parses email headers and body, identifies sender infrastructure and URL
   - **VirusTotal** – sender IP and domain reputation
   - **AbuseIPDB** – sender IP abuse confidence
   - **urlscan.io** – sandbox scans for sender domain and URLs
-- Simple ASCII banner and readable CLI output
 
 ## Usage
 python3 MailScope.py -f mail.eml [options]
