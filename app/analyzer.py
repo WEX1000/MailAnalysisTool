@@ -40,8 +40,11 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
         if sender_ip:
             break
 
-    body = msg.get_body(preferencelist=("html", "plain"))
-    urls = dedupe(URL_REGEX.findall(body.get_content())) if body else []
+    body_html = msg.get_body(preferencelist=("html", "plain"))
+    urls = dedupe(URL_REGEX.findall(body_html.get_content())) if body_html else []
+
+    body_plain = msg.get_body(preferencelist=("plain", "html"))
+    content = body_plain.get_content() if body_plain else ""
 
     attachments_hashes = {}
     for part in msg.walk():
@@ -56,9 +59,14 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
         sha256 = hashlib.sha256(data).hexdigest()
         attachments_hashes[name] = sha256
 
+    
+    print(f"Subject: {subject}")
+    print("-" * 78)
+    print("Mail content:")
+    print(content)
+    print("-" * 78)
     print("Basic info:")
     print(f"Date: {date}")
-    print(f"Subject: {subject}")
     print(f"Sender domain: {sender_domain}")
     print(f"Sender IP: {sender_ip}")
     print(f"From: {sender_addr}")
