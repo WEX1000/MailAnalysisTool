@@ -42,3 +42,24 @@ def vt_domain(domain: str):
         "stats": stats,
         "reputation": a.get("reputation"),
     }
+
+def vt_hash(sha256: str):
+    if not sha256:
+        return None
+
+    data = vt_get(f"https://www.virustotal.com/api/v3/files/{sha256}")
+    if "error" in data:
+        return data
+
+    a = data["data"]["attributes"]
+    stats = a.get("last_analysis_stats", {})
+
+    return {
+        "score": stats.get("malicious", 0) + stats.get("suspicious", 0),
+        "stats": stats,
+        "type": a.get("type_description"),
+        "size": a.get("size"),
+        "first_seen": a.get("first_submission_date"),
+        "last_seen": a.get("last_analysis_date"),
+        "reputation": a.get("reputation"),
+    }

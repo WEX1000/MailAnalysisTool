@@ -5,9 +5,10 @@ from urllib.parse import urlparse
 import re
 import ipaddress
 import time
+import hashlib
 
 from .utils import URL_REGEX, dedupe
-from .vt import vt_ip, vt_domain
+from .vt import vt_ip, vt_domain, vt_hash
 from .abuseipdb import abuseipdb_ip
 from .urlscan import urlscan_domain
 
@@ -21,6 +22,7 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
     date = msg.get("Date")
     message_id = msg.get("Message-ID")
     user_agent = msg.get("User-Agent") or msg.get("X-Mailer")
+    subject = msg.get("Subject", "")
 
     recipients = []
     for hdr in ("To", "Cc", "Bcc"):
@@ -41,8 +43,22 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
     body = msg.get_body(preferencelist=("html", "plain"))
     urls = dedupe(URL_REGEX.findall(body.get_content())) if body else []
 
+    attachments_hashes = {}
+    for part in msg.walk():
+        if part.get_content_disposition() != "attachment":
+            continue
+
+        data = part.get_payload(decode=True)
+        if not data:
+            continue
+    
+        name = part.get_filename() or "brak_nazwy"
+        sha256 = hashlib.sha256(data).hexdigest()
+        attachments_hashes[name] = sha256
+
     print("Basic info:")
     print(f"Date: {date}")
+    print(f"Subject: {subject}")
     print(f"Sender domain: {sender_domain}")
     print(f"Sender IP: {sender_ip}")
     print(f"From: {sender_addr}")
@@ -53,6 +69,10 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
     print("URLs:")
     for u in urls:
         print(f"  - {u}")
+    print("Attachements:")
+    for name, hash in attachments_hashes.items():
+        print(f"  - File name: {name}")
+        print(f"    - SHA256 hash: {hash}")
     if not (vt_on or abuse_on or urlscan_on):
         print("-" * 78)
 
@@ -60,8 +80,12 @@ def mail_analysis(path: str, vt_on=False, abuse_on=False, urlscan_on=False):
         print("-" * 34 + "VirusTotal" + "-" * 34)
         ip_res = vt_ip(sender_ip) if sender_ip else None
         dom_res = vt_domain(sender_domain) if sender_domain else None
-        print(f"Sender IP reputation: {ip_res.get('score') if isinstance(ip_res, dict) else None}")
-        print(f"Sender domain reputation: {dom_res.get('score') if isinstance(dom_res, dict) else None}")
+        print(f"Sender IP reputation: {ip_res.get('score') if isinstance(ip_res, dict) else None} (No. of security vendors flagging IP as malicious)")
+        print(f"Sender domain reputation: {dom_res.get('score') if isinstance(dom_res, dict) else None} (No. of security vendors flagging domain as malicious)")
+        for name, hash in attachments_hashes.items():
+            print(f"  - File name: {name}")
+            print(f"    - Hash reputation: {(vt_hash(hash))['score']} (No. of security vendors flagging domain as malicious)")
+
         if not (abuse_on or urlscan_on):
             print("-" * 78)
 
