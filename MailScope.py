@@ -1,6 +1,9 @@
 import sys
+import json
+from pathlib import Path
 
 from app.analyzer import mail_analysis
+from app.osintdata import gather_osint_data
 
 LOGO = """ __   __  _______  ___   ___      _______  _______  _______  _______  _______ 
 |  |_|  ||   _   ||   | |   |    |       ||       ||       ||       ||       |
@@ -15,6 +18,7 @@ def main():
     vt_on = False
     abuse_on = False
     urlscan_on = False
+    JSON_on = False
     args = sys.argv[1:]
 
     if not args:
@@ -32,6 +36,7 @@ def main():
             print("  -vt           enable VirusTotal")
             print("  -url          enable urlscan.io")
             print("  -abuse        enable AbuseIPDB")
+            print("  -json         saves results to JSON file")
             print("-" * 78)
             return
         elif args[i] == "-f" and i + 1 < len(args):
@@ -44,6 +49,8 @@ def main():
             urlscan_on = True; i += 1; continue
         elif args[i] == "-abuse":
             abuse_on = True; i += 1; continue
+        elif args[i] == "-json":
+            JSON_on = True; i += 1; continue
         else:
             print(LOGO)
             print("Invalid argument, use -h")
@@ -57,7 +64,93 @@ def main():
     print(LOGO)
     print("File:", file_path)
     print("-" * 78)
-    mail_analysis(file_path, vt_on=vt_on, abuse_on=abuse_on, urlscan_on=urlscan_on)
+
+    analysis_data = mail_analysis(file_path)
+
+    if vt_on or abuse_on or urlscan_on:
+        osint_tools_data = gather_osint_data(analysis_data, vt_on=vt_on, abuse_on=abuse_on, urlscan_on=urlscan_on)
+    else:
+        osint_tools_data = {
+            "vt_on" : vt_on,
+            "abuse_on" : abuse_on,
+            "urlscan_on" : urlscan_on
+        }
+
+    if JSON_on:
+        results = {
+            "analysis_data" : analysis_data,
+            "osint_tools_data" : osint_tools_data
+        }
+        with open(f"{Path(file_path).stem}.eml_Analysis.json", "w",  encoding="utf-8") as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+
+    
+    print(f"Subject: {analysis_data['subject']}")
+    print("-" * 78)
+    print("Mail content:")
+    print(analysis_data['content'])
+    print("-" * 78)
+    print("Basic info:")
+    print(f"Date: {analysis_data['date']}")
+    print(f"Sender domain: {analysis_data['sender_domain']}")
+    print(f"Sender IP: {analysis_data['sender_ip']}")
+    print(f"From: {analysis_data['sender_addr']}")
+    print(f"Return-Path: {analysis_data['return_path']}")
+    print(f"Recipients: {analysis_data['recipients']}")
+    print(f"Message-ID: {analysis_data['message_id']}")
+    print(f"User-Agent/X-Mailer: {analysis_data['user_agent']}")
+
+    print("URLs:")
+    for u in analysis_data["urls"]:
+        print(f"  - {u}")
+    
+    print("Attachements:")
+    for name, hash in (analysis_data["attachments_hashes"]).items():
+        print(f"  - File name: {name}")
+        print(f"    - SHA256 hash: {hash}")
+    
+    if vt_on:
+        print("-" * 34 + "VirusTotal" + "-" * 34)
+
+        if osint_tools_data['sender_ip_reputation']['score'] > 10:
+            print(f"Sender IP reputation: {osint_tools_data['sender_ip_reputation']['score']} - HIGH RISK!!!!")
+        else:
+            print(f"Sender IP reputation: {osint_tools_data['sender_ip_reputation']['score']}")
+
+        if osint_tools_data['sender_domain_reputation']['score'] > 10:
+            print(f"Sender domain reputation: {osint_tools_data['sender_domain_reputation']['score']} - HIGH RISK!!!!") 
+        else:
+            print(f"Sender domain reputation: {osint_tools_data['sender_domain_reputation']['score']}") 
+
+        for name, hash in (analysis_data["attachments_hashes"]).items():
+            if osint_tools_data[f'Hash reputation of {name} file']['score'] > 10:
+                print(f"File {name} reputation: {osint_tools_data[f'Hash reputation of {name} file']['score']} - HIGH RISK!!!!")
+                print(f"  - File type: {osint_tools_data[f'Hash reputation of {name} file']['type']}")
+                print(f"  - File size: {osint_tools_data[f'Hash reputation of {name} file']['size']}")
+            else:
+                print(f"File {name} reputation: {osint_tools_data[f'Hash reputation of {name} file']['score']}")
+                print(f"  - File type: {osint_tools_data[f'Hash reputation of {name} file']['type']}")
+                print(f"  - File size: {osint_tools_data[f'Hash reputation of {name} file']['size']}")
+    
+    if abuse_on:
+        print("-" * 34 + "AbuseIPDB" + "-" * 35)
+        print(f"Confidence of abuse: {osint_tools_data['confidence_of_abuse']['confidence']}")
+        print(f"No. of reports: {osint_tools_data['confidence_of_abuse']['reports']}")
+        print(f"Country: {osint_tools_data['confidence_of_abuse']['country']}")
+        print(f"ISP: {osint_tools_data['confidence_of_abuse']['isp']}")
+        print(f"Usage: {osint_tools_data['confidence_of_abuse']['usage']}")
+
+    if urlscan_on:
+        print("-" * 34 + "URLScan" + "-" * 37)
+        print(f"Sender domain scan: {osint_tools_data['sender_domain_scan']['result']}")
+        for name in analysis_data["urls"]:
+            print(f"URL '{name}' scan: {osint_tools_data[name]['result']}")
+    
+    print("-" * 78)
+
 
 if __name__ == "__main__":
     main()
+
+#print(json.dumps(analysis_data, indent=2, ensure_ascii=False))
+#print(json.dumps(osint_tools_data, indent=2, ensure_ascii=False))
